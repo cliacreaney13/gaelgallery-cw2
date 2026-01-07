@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GaelGallery – Media Admin</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">GG</div>
+      <div class="brand-text">
+        <div class="title">GaelGallery – Media Admin</div>
+        <div class="subtitle">Frontend talking to Azure Functions (local)</div>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn" id="btnRefreshTop">Refresh</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-page="list">Home / List</button>
+    <button class="tab" data-page="upload">Upload</button>
+    <button class="tab" data-page="detail">Detail</button>
+  </nav>
+
+  <main class="container">
+    <div id="status" class="status">ℹ️ Ready.</div>
+
+    <!-- PAGE 1: LIST -->
+    <section id="page-list" class="page active">
+      <div class="page-head">
+        <div>
+          <h2>Home / List</h2>
+          <p class="hint">Displays media cards from <code>GET /media</code>. Click a card to open Detail.</p>
+        </div>
+
+        <div class="filters">
+          <input id="filterUserId" class="input" placeholder="Filter by userId (optional)" />
+          <button id="btnApplyFilter" class="btn">Apply</button>
+          <button id="btnClearFilter" class="btn btn-ghost">Clear</button>
+        </div>
+      </div>
+
+      <div id="cards" class="grid"></div>
+    </section>
+
+    <!-- PAGE 2: UPLOAD -->
+    <section id="page-upload" class="page">
+      <div class="page-head">
+        <div>
+          <h2>Upload</h2>
+          <p class="hint">
+            File select + metadata → uploads blob via <code>POST /media/{id}/file</code> → creates/updates record.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <form id="uploadForm" class="form">
+          <div class="row two">
+            <div>
+              <label>ID</label>
+              <input id="upId" class="input" placeholder="e.g. media_011" required />
+            </div>
+            <div>
+              <label>pk</label>
+              <input id="upPk" class="input" value="fixed" />
+            </div>
+          </div>
+
+          <div class="row two">
+            <div>
+              <label>userId</label>
+              <input id="upUserId" class="input" placeholder="e.g. user_457" required />
+            </div>
+            <div>
+              <label>mediaType</label>
+              <select id="upMediaType" class="input">
+                <option value="audio">audio</option>
+                <option value="video">video</option>
+                <option value="image">image</option>
+                <option value="text">text</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>title</label>
+              <input id="upTitle" class="input" placeholder="Title" required />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>description</label>
+              <textarea id="upDescription" class="input" rows="3" placeholder="Short description"></textarea>
+            </div>
+          </div>
+
+          <div class="row two">
+            <div>
+              <label>tags (comma separated)</label>
+              <input id="upTags" class="input" placeholder="dance,irish,tradition" />
+            </div>
+            <div>
+              <label>uploadDate (YYYY-MM-DD)</label>
+              <input id="upUploadDate" class="input" placeholder="2026-01-06" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Choose file</label>
+              <input id="upFile" type="file" class="input" required />
+              <div class="small">This will be sent as <strong>multipart/form-data</strong> to your upload endpoint.</div>
+            </div>
+          </div>
+
+          <div class="row actions">
+            <button class="btn btn-primary" type="submit">Upload + Create record</button>
+            <button class="btn btn-ghost" type="button" id="btnUpClear">Clear</button>
+          </div>
+
+          <pre id="uploadResult" class="result"></pre>
+        </form>
+      </div>
+    </section>
+
+    <!-- PAGE 3: DETAIL -->
+    <section id="page-detail" class="page">
+      <div class="page-head">
+        <div>
+          <h2>Detail</h2>
+          <p class="hint">
+            Shows one item + buttons: Edit (<code>PUT</code>) and Delete (<code>DELETE</code>).
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <form id="detailSearchForm" class="form">
+          <div class="row two">
+            <div>
+              <label>Record ID</label>
+              <input id="detailId" class="input" placeholder="e.g. media_004" required />
+            </div>
+            <div>
+              <label>pk (used for update/delete)</label>
+              <input id="detailPk" class="input" value="fixed" />
+            </div>
+          </div>
+
+          <div class="row actions">
+            <button class="btn btn-primary" type="submit">Load record</button>
+            <button class="btn btn-ghost" type="button" id="btnDetailClear">Clear</button>
+          </div>
+        </form>
+
+        <div id="detailView" class="detail-card hidden"></div>
+
+        <hr class="divider" />
+
+        <h3>Edit record</h3>
+        <form id="editForm" class="form">
+          <div class="row two">
+            <div>
+              <label>userId</label>
+              <input id="editUserId" class="input" placeholder="user_123" />
+            </div>
+            <div>
+              <label>mediaType</label>
+              <select id="editMediaType" class="input">
+                <option value="audio">audio</option>
+                <option value="video">video</option>
+                <option value="image">image</option>
+                <option value="text">text</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>title</label>
+              <input id="editTitle" class="input" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>description</label>
+              <textarea id="editDescription" class="input" rows="3"></textarea>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>blobUrl</label>
+              <input id="editBlobUrl" class="input" />
+            </div>
+          </div>
+
+          <div class="row two">
+            <div>
+              <label>tags (comma separated)</label>
+              <input id="editTags" class="input" />
+            </div>
+            <div>
+              <label>uploadDate</label>
+              <input id="editUploadDate" class="input" />
+            </div>
+          </div>
+
+          <div class="row actions">
+            <button class="btn btn-primary" type="submit">Save changes (PUT)</button>
+            <button class="btn btn-danger" type="button" id="btnDelete">Delete record (DELETE)</button>
+          </div>
+
+          <pre id="detailResult" class="result"></pre>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>COM682 CW2 – minimal UI proving Azure functionality</span>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
